@@ -1,3 +1,40 @@
+(define-struct state (board player parent))
+(define B1 '((- - - - - - -)
+             (- - - - - - -)
+             (- - - - - - -)
+             (- - - - - - -)
+             (- - - - - - -)
+             (- - - - - - -)))
+(define S (make-state B1 'X 'none))
+
+(define (move state column)
+  (cond
+    ((equal? (getTileAt (state-board state) column 0) '-) (make-state (updateBoard (state-board state) column (lowestFreeSpotInColumn (state-board state) column 0) (state-player state)) (opponentMarker (state-player state)) state))
+    (else #F)))
+
+(define (lowestFreeSpotInColumn B column depth)
+  (cond
+    ((= depth 6) 5)
+    ((equal? (getTileAt B column depth) '-) (lowestFreeSpotInColumn B column (add1 depth)))
+    (else depth)))
+
+(define (opponentMarker marker)
+  (cond
+    ((equal? marker 'O) 'X)
+    (else 'O)))
+
+
+(define (possibleMoves state column) ;defult column is 0
+  (cond
+    ((= column 7) '())
+    ((move state column) (cons (move state column) (possibleMoves state (add1 column))))
+    (else (possibleMoves state (add1 column)))))
+
+;(define (testAllMoves state depth target depth movesL nextMoves) ;WIP
+;  (cond
+;    ((
+
+
 (define (printBoard B)
   (cond
    ((not (empty? (rest B))) (println (first B)) (printBoard (rest B)))
@@ -41,8 +78,8 @@
   (second input))
 
 
-(define (getTileAt B pos)
-  (list-ref (list-ref B (getY pos)) (getX pos)))
+(define (getTileAt B Xpos Ypos)
+  (list-ref (list-ref B Ypos) Xpos))
 
 (define (countAttacks queensL index)
   (cond
@@ -90,8 +127,7 @@
 
 (define (printState state)
   (printBoard (state-board state))
-  (print (F-g (state-F state))) (print '_)
-  (println (F-h (state-F state))) (newline))
+  (println (state-player state)))
 ;  (print (state-parent state)))
 
 (define (printStates L)
