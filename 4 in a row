@@ -16,7 +16,7 @@
   (cond
     ((= depth 6) 5)
     ((equal? (getTileAt B column depth) '-) (lowestFreeSpotInColumn B column (add1 depth)))
-    (else depth)))
+    (else (sub1 depth))))
 
 (define (opponentMarker marker)
   (cond
@@ -30,10 +30,52 @@
     ((move state column) (cons (move state column) (possibleMoves state (add1 column))))
     (else (possibleMoves state (add1 column)))))
 
-;(define (testAllMoves state depth target depth movesL nextMoves) ;WIP
-;  (cond
-;    ((
+(define (testAllMoves depth targetDepth movesL) ;WIP
+  (cond
+    ((= depth targetDepth) (calcValue movesL)) ;MISSING FINCTION
+    ((empty? movesL) 'ERR-NO-MOVES)
+    ((empty? (rest movesL)) (testAllMoves (add1 depth) targetDepth (append (rest movesL) (possibleMoves (first movesL) 0))))
+    ((not (equal? (state-player (first movesL)) (state-player (second movesL)))) (testAllMoves (add1 depth) targetDepth (append (rest movesL) (possibleMoves (first movesL) 0))))
+    (else (testAllMoves depth targetDepth (append (rest movesL) (possibleMoves (first movesL) 0))))))
 
+(define (calcValue movesL) ;will run a function to give each move a value and compare the best move for the player in the parent state
+  (cond
+    ((not movesL) 'FUCK)
+;    (else (printStates movesL))))
+    (else movesL)))
+
+(define (playTest state)
+  (printState state)
+  (cond
+    ((and (not (equal? (state-parent state) 'none)) (win state 0 0 (state-player (state-parent state)))) (state-player (state-parent state)) (print 'WON))
+    ((empty? (possibleMoves state 0)) (print 'TIE))
+    (else (playTest (randomIndexFrom (possibleMoves state 0))))))
+
+(define (win state X Y player)
+  (print X)
+  (println Y)
+  (newline)
+  (cond
+    ((= Y 6) #F)
+    ((legalTile? X Y) (win state 0 (add1 Y) player))
+    ((and (equal? (list-ref (list-ref (state-board state) Y) X) player)
+          (equal? (list-ref (list-ref (state-board state) Y) (+ 1 X)) player)
+          (equal? (list-ref (list-ref (state-board state) Y) (+ 2 X)) player)
+          (equal? (list-ref (list-ref (state-board state) Y) (+ 3 X)) player)) #T)
+    ((and (equal? (list-ref (list-ref (state-board state) Y) X) player)
+          (equal? (list-ref (list-ref (state-board state) (+ 1 Y)) X) player)
+          (equal? (list-ref (list-ref (state-board state) (+ 2 Y)) X) player)
+          (equal? (list-ref (list-ref (state-board state) (+ 3 Y)) X) player)) #T)
+    ((and (equal? (list-ref (list-ref (state-board state) Y) X) player)
+          (equal? (list-ref (list-ref (state-board state) (+ 1 Y)) (+ 1 X)) player)
+          (equal? (list-ref (list-ref (state-board state) (+ 2 Y)) (+ 2 X)) player)
+          (equal? (list-ref (list-ref (state-board state) (+ 3 Y)) (+ 3 X)) player)) #T)
+    (else (win state (add1 X) Y player))))
+    
+(define (legalTile? X Y)
+  (cond
+    ((and (< -1 X) (> 7 X) (< -1 Y) (> 6 Y)) #T)
+    (else #F)))
 
 (define (printBoard B)
   (cond
@@ -135,4 +177,3 @@
     ((empty? L) 'done)
     (else (printState (first L)) (printStates (rest L)))))
   
-
