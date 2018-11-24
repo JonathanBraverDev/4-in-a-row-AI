@@ -13,7 +13,7 @@
              (- - - - - - -)
              (- - - - - - -)
              (X X X X - - -)))
-(define S2 (make-state B2 'X 'none))
+(define S2 (make-state B2 'X 'some-state))
 
 
 (define (move state column)
@@ -56,7 +56,7 @@
 (define (playTest state)
   (printState state)
   (cond
-    ((and (not (equal? (state-parent state) 'none)) (win state 0 0 (state-player (state-parent state)))) (state-player (state-parent state)) (print 'WON))
+    ((and (state? (state-parent state)) (win state 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (print 'WON))
     ((empty? (possibleMoves state 0)) (print 'TIE))
     (else (playTest (randomIndexFrom (possibleMoves state 0))))))
 
@@ -84,9 +84,9 @@
           (equal? (list-ref (list-ref (state-board state) (+ 3 Y)) (+ 3 X)) player)) #T)
     ((and (> Y 3) (> X 4)
           (equal? (list-ref (list-ref (state-board state) Y) X) player)
-          (equal? (list-ref (list-ref (state-board state) (- 1 Y)) (- 1 X)) player)
-          (equal? (list-ref (list-ref (state-board state) (- 2 Y)) (- 2 X)) player)
-          (equal? (list-ref (list-ref (state-board state) (- 3 Y)) (- 3 X)) player)) #T)
+          (equal? (list-ref (list-ref (state-board state) (- Y 1)) (- X 1)) player)
+          (equal? (list-ref (list-ref (state-board state) (- Y 2)) (- X 2)) player)
+          (equal? (list-ref (list-ref (state-board state) (- Y 3)) (- X 3)) player)) #T)
     (else (win state (add1 X) Y player))))
     
 (define (legalTile? X Y)
@@ -140,28 +140,28 @@
 (define (getTileAt B Xpos Ypos)
   (list-ref (list-ref B Ypos) Xpos))
 
-(define (countAttacks queensL index)
+(define (countAttacks Lindex)
   (cond
-    ((= index (length queensL)) 0)
-    (else (+ (attackerCount queensL index) (countAttacks queensL (add1 index))))))
+    ((= index (length L)) 0)
+    (else (+ (attackerCount Lindex) (countAttacks L(add1 index))))))
 
-(define (attackerCount queensL queenNum)
-  (+ (countDiaAttacks queensL queenNum 0) (rowAttacks queensL queenNum 0)))
+(define (attackerCount LqueenNum)
+  (+ (countDiaAttacks LqueenNum 0) (rowAttacks LqueenNum 0)))
 
-(define (rowAttacks queensL queenNum index)
+(define (rowAttacks LqueenNum index)
   (cond
-    ((= index (length queensL)) 0)
-    ((= index queenNum) (rowAttacks queensL queenNum (add1 index)))
-    ((= (list-ref queensL queenNum) (list-ref queensL index)) (add1 (rowAttacks queensL queenNum (add1 index))))
-    (else (rowAttacks queensL queenNum (add1 index)))))
+    ((= index (length L)) 0)
+    ((= index queenNum) (rowAttacks LqueenNum (add1 index)))
+    ((= (list-ref LqueenNum) (list-ref Lindex)) (add1 (rowAttacks LqueenNum (add1 index))))
+    (else (rowAttacks LqueenNum (add1 index)))))
 
-(define (countDiaAttacks queensL queenNum index)
+(define (countDiaAttacks LqueenNum index)
   (cond
-    ((= index (length queensL)) 0)
-    ((= index queenNum) (countDiaAttacks queensL queenNum (add1 index)))
-    ((= (list-ref queensL queenNum) (+ (list-ref queensL index) (abs (- index queenNum)))) (add1 (countDiaAttacks queensL queenNum (add1 index))))
-    ((= (list-ref queensL queenNum) (- (list-ref queensL index) (abs (- index queenNum)))) (add1 (countDiaAttacks queensL queenNum (add1 index))))
-    (else (countDiaAttacks queensL queenNum (add1 index)))))
+    ((= index (length L)) 0)
+    ((= index queenNum) (countDiaAttacks LqueenNum (add1 index)))
+    ((= (list-ref LqueenNum) (+ (list-ref Lindex) (abs (- index queenNum)))) (add1 (countDiaAttacks LqueenNum (add1 index))))
+    ((= (list-ref LqueenNum) (- (list-ref Lindex) (abs (- index queenNum)))) (add1 (countDiaAttacks LqueenNum (add1 index))))
+    (else (countDiaAttacks LqueenNum (add1 index)))))
 
 (define (listUntill L index counter)
   (cond
@@ -179,13 +179,14 @@
 (define (randomIndexFrom L)
   (list-ref L (random (length L))))
 
-(define (calcForEach queensL index)
+(define (calcForEach Lindex)
   (cond
-    ((= index (length queensL)) '())
-    (else (cons (countAttacks (list-ref queensL index) 0) (calcForEach queensL (add1 index))))))
+    ((= index (length L)) '())
+    (else (cons (countAttacks (list-ref Lindex) 0) (calcForEach L(add1 index))))))
 
 (define (printState state)
   (printBoard (state-board state))
+  (displayln "next turn is:")
   (println (state-player state)))
 ;  (print (state-parent state)))
 
