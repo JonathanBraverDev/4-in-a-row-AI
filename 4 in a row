@@ -48,8 +48,8 @@
 (define (playTest state)
   (printState state)
   (cond
-    ((and (state? (state-parent state)) (win state 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (display " WON"))
-    ((empty? (possibleMoves state 0)) (print 'TIE))
+    ((and (state? (state-parent state)) (win state 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (display " WON") 1)
+    ((empty? (possibleMoves state 0)) (print 'TIE) 0)
     (else (playTest (randomIndexFrom (possibleMoves state 0))))))
 
 (define (win state X Y player)
@@ -183,4 +183,11 @@
   (cond
     ((empty? L) 'done)
     (else (printState (first L)) (printStates (rest L)))))
+
+(define (tieRate numOfRuns ties wins) ;just for fun... defult is 0 on ties and wins
+  (cond
+    ((= 0 numOfRuns) (newline) (* (/ ties wins) 100))
+    ((= (playTest S) 1) (tieRate (sub1 numOfRuns) ties (add1 wins)))
+    (else (tieRate (sub1 numOfRuns) (add1 ties) wins))))
+    
   
