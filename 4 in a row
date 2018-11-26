@@ -7,14 +7,6 @@
              (- - - - - - -)))
 (define S (make-state B1 'X 'none))
 
-(define B2 '((- - - - - - -)
-             (- - - - - - -)
-             (- - - - - - -)
-             (- - - - - - -)
-             (- - - - - - -)
-             (X X X X - - -)))
-(define S2 (make-state B2 'X 'some-state))
-
 
 (define (move state column)
   (cond
@@ -56,14 +48,11 @@
 (define (playTest state)
   (printState state)
   (cond
-    ((and (state? (state-parent state)) (win state 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (print 'WON))
+    ((and (state? (state-parent state)) (win state 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (display " WON"))
     ((empty? (possibleMoves state 0)) (print 'TIE))
     (else (playTest (randomIndexFrom (possibleMoves state 0))))))
 
 (define (win state X Y player)
-;  (print X)
-;  (println Y)
-;  (newline)
   (cond
     ((= Y 6) #F)
     ((not (legalTile? X Y)) (win state 0 (add1 Y) player))
@@ -187,8 +176,8 @@
 (define (printState state)
   (printBoard (state-board state))
   (displayln "next turn is:")
-  (println (state-player state)))
-;  (print (state-parent state)))
+  (println (state-player state))
+  (newline))
 
 (define (printStates L)
   (cond
