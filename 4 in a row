@@ -1,18 +1,32 @@
-(define-struct state (board player parent))
+(define-struct state (board score player parent))
 (define B1 '((- - - - - - -)
              (- - - - - - -)
              (- - - - - - -)
              (- - - - - - -)
              (- - - - - - -)
              (- - - - - - -)))
-(define S (make-state B1 'X 'none))
+(define S (make-state B1 0 'X 'none))
 
 
 (define (move state column)
   (cond
-    ((equal? (getTileAt (state-board state) column 0) '-) (make-state (updateBoard (state-board state) column (lowestFreeSpotInColumn (state-board state) column 0) (state-player state)) (opponentMarker (state-player state)) state))
+    ((equal? (getTileAt (state-board state) column 0) '-) (calcScore (updateBoard (state-board state) column (lowestFreeSpotInColumn (state-board state) column 0) (state-player state)) (state-player state) state))
     (else #F)))
 
+(define (calcScore B player parent) ;for now just win/lose
+  (cond
+    ((win? B 0 0 player) (make-state B +inf.0 (opponentMarker player) parent))
+    ((win? B 0 0 (opponentMarker player)) (make-state B -inf.0 (opponentMarker player) parent))
+    (else (make-state B 0 (opponentMarker player) parent))))
+
+(define (bestMove movesL index bestIndex) ;movesL is (possibleMoves state 0)
+  (cond
+    ((empty? movesL) 'tie)
+    ((> index (- (length movesL) 2))  (list-ref movesL (randomIndexFrom bestIndex)))
+    ((= (state-score (list-ref movesL index)) (state-score (list-ref movesL (add1 index)))) (bestMove movesL (add1 index) (cons index bestIndex)))
+    ((< (state-score (list-ref movesL index)) (state-score (list-ref movesL (add1 index)))) (bestMove movesL (add1 index) (list index)))
+    (else (bestMove movesL (add1 index) bestIndex))))
+ 
 (define (lowestFreeSpotInColumn B column depth)
   (cond
     ((= depth 6) 5)
@@ -33,50 +47,44 @@
 
 (define (testAllMoves depth targetDepth movesL) ;WIP
   (cond
-    ((= depth targetDepth) (calcValue movesL)) ;MISSING FINCTION
+    ((= depth targetDepth) (calcScore movesL)) ;MISSING FINCTION
     ((empty? movesL) 'ERR-NO-MOVES)
     ((empty? (rest movesL)) (testAllMoves (add1 depth) targetDepth (append (rest movesL) (possibleMoves (first movesL) 0))))
     ((not (equal? (state-player (first movesL)) (state-player (second movesL)))) (testAllMoves (add1 depth) targetDepth (append (rest movesL) (possibleMoves (first movesL) 0))))
     (else (testAllMoves depth targetDepth (append (rest movesL) (possibleMoves (first movesL) 0))))))
 
-(define (calcValue movesL) ;will run a function to give each move a value and compare the best move for the player in the parent state
-  (cond
-    ((not movesL) 'FUCK)
-;    (else (printStates movesL))))
-    (else movesL)))
-
 (define (playTest state)
-;  (printState state)
+  (printState state)
   (cond
-    ((and (state? (state-parent state)) (win state 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (display " WON  ") 1)
+    ((and (state? (state-parent state)) (win? (state-board state) 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (display " WON  ") 1)
     ((empty? (possibleMoves state 0)) (print 'TIE) 0)
-    (else (playTest (randomIndexFrom (possibleMoves state 0))))))
+    (else (playTest (bestMove (possibleMoves state 0) 0 '())))))
 
-(define (win state X Y player)
+(define (win? board X Y player)
   (cond
     ((= Y 6) #F)
-    ((not (legalTile? X Y)) (win state 0 (add1 Y) player))
+    ((not (legalTile? X Y)) (win? board 0 (add1 Y) player))
     ((and (< X 4)
-          (equal? (list-ref (list-ref (state-board state) Y) X) player)
-          (equal? (list-ref (list-ref (state-board state) Y) (+ 1 X)) player)
-          (equal? (list-ref (list-ref (state-board state) Y) (+ 2 X)) player)
-          (equal? (list-ref (list-ref (state-board state) Y) (+ 3 X)) player)) #T)
+          (equal? (list-ref (list-ref board Y) X) player)
+          (equal? (list-ref (list-ref board Y) (+ 1 X)) player)
+          (equal? (list-ref (list-ref board Y) (+ 2 X)) player)
+          (equal? (list-ref (list-ref board Y) (+ 3 X)) player)) #T)
     ((and (< Y 3)
-          (equal? (list-ref (list-ref (state-board state) Y) X) player)
-          (equal? (list-ref (list-ref (state-board state) (+ 1 Y)) X) player)
-          (equal? (list-ref (list-ref (state-board state) (+ 2 Y)) X) player)
-          (equal? (list-ref (list-ref (state-board state) (+ 3 Y)) X) player)) #T)
+          (equal? (list-ref (list-ref board Y) X) player)
+          (equal? (list-ref (list-ref board (+ 1 Y)) X) player)
+          (equal? (list-ref (list-ref board (+ 2 Y)) X) player)
+          (equal? (list-ref (list-ref board (+ 3 Y)) X) player)) #T)
     ((and (< Y 3) (< X 4)
-          (equal? (list-ref (list-ref (state-board state) Y) X) player)
-          (equal? (list-ref (list-ref (state-board state) (+ 1 Y)) (+ 1 X)) player)
-          (equal? (list-ref (list-ref (state-board state) (+ 2 Y)) (+ 2 X)) player)
-          (equal? (list-ref (list-ref (state-board state) (+ 3 Y)) (+ 3 X)) player)) #T)
+          (equal? (list-ref (list-ref board Y) X) player)
+          (equal? (list-ref (list-ref board (+ 1 Y)) (+ 1 X)) player)
+          (equal? (list-ref (list-ref board (+ 2 Y)) (+ 2 X)) player)
+          (equal? (list-ref (list-ref board (+ 3 Y)) (+ 3 X)) player)) #T)
     ((and (> Y 3) (< X 4)
-          (equal? (list-ref (list-ref (state-board state) Y) X) player)
-          (equal? (list-ref (list-ref (state-board state) (- Y 1)) (+ 1 X)) player)
-          (equal? (list-ref (list-ref (state-board state) (- Y 2)) (+ 2 X)) player)
-          (equal? (list-ref (list-ref (state-board state) (- Y 3)) (+ 3 X)) player)) #T)
-    (else (win state (add1 X) Y player))))
+          (equal? (list-ref (list-ref board Y) X) player)
+          (equal? (list-ref (list-ref board (- Y 1)) (+ 1 X)) player)
+          (equal? (list-ref (list-ref board (- Y 2)) (+ 2 X)) player)
+          (equal? (list-ref (list-ref board (- Y 3)) (+ 3 X)) player)) #T)
+    (else (win? board (add1 X) Y player))))
     
 (define (legalTile? X Y)
   (cond
@@ -186,7 +194,7 @@
 
 (define (tieRate numOfRuns ties wins) ;just for fun... defult is 0 on ties and wins
   (cond
-    ((= 0 numOfRuns) (newline) (- 100 (* (/ ties wins) 100)))
+    ((= 0 numOfRuns) (newline) (* (/ ties wins) 100))
     ((= (playTest S) 1) (tieRate (sub1 numOfRuns) ties (add1 wins)))
     (else (tieRate (sub1 numOfRuns) (add1 ties) wins))))
     
