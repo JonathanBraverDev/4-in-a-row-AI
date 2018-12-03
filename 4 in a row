@@ -74,6 +74,14 @@
     ((not (equal? (state-player (first movesL)) (state-player (second movesL)))) (testAllMoves (add1 depth) targetDepth (append (rest movesL) (possibleMoves (first movesL) 0))))
     (else (testAllMoves depth targetDepth (append (rest movesL) (possibleMoves (first movesL) 0))))))
 
+(define (PvE state)
+  (printState state)
+  (cond
+    ((and (state? (state-parent state)) (win? (state-board state) 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (display " WON"))
+    ((empty? (possibleMoves state 0)) (print 'TIE) 0)
+    ((equal? (state-player state) 'X) (display "enter your move (0-6) ") (PvE (move state (read))))
+    (else (PvE (bestMove (possibleMoves state 0) 0 '(0))))))
+
 (define (playTest state)
   (printState state)
   (cond
