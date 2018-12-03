@@ -7,6 +7,25 @@
              (- - - - - - -)))
 (define S (make-state B1 0 'X 'none))
 
+(define B2 '((- - - - - - -)
+             (- - - - - - -)
+             (- - - - - - -)
+             (O - - X - - -)
+             (O - - X - - -)
+             (O - - X - - -)))
+(define B2.1 '((- - - - - - -)
+               (- - - - - - -)
+               (- - - - - - -)
+               (- - - X - - -)
+               (O - - X - - -)
+               (O - - X - - -)))
+
+(define S2 (make-state B2 0 'X (make-state B2.1 0 'O 'none)))
+
+;debub test
+;(printState (bestMove (calcForEach (possibleMoves S2 0) 0) 0 '(0)))
+;(printStates (possibleMoves S2 0))
+
 
 (define (move state column)
   (cond
@@ -16,17 +35,18 @@
 (define (calcScore B player parent) ;for now just win/lose
   (cond
     ((win? B 0 0 player) (make-state B +inf.0 (opponentMarker player) parent))
-    ((win? B 0 0 (opponentMarker player)) (make-state B -inf.0 (opponentMarker player) parent))
+    ((win? B 0 0 (opponentMarker player)) (newline) (make-state B -inf.0 (opponentMarker player) parent))
     (else (make-state B 0 (opponentMarker player) parent))))
 
 (define (bestMove movesL index bestIndex) ;movesL is (possibleMoves state 0)
+  (print bestIndex) (println (state-score (list-ref movesL index)))
   (cond
     ((empty? movesL) 'tie)
-    ((> index (- (length movesL) 2))  (list-ref movesL (randomIndexFrom bestIndex)))
-    ((= (state-score (list-ref movesL index)) (state-score (list-ref movesL (add1 index)))) (bestMove movesL (add1 index) (cons index bestIndex)))
-    ((< (state-score (list-ref movesL index)) (state-score (list-ref movesL (add1 index)))) (bestMove movesL (add1 index) (list index)))
-    (else (bestMove movesL (add1 index) bestIndex))))
- 
+    ((> index (- (length movesL) 2)) (println 1)  (list-ref movesL (randomIndexFrom bestIndex)))
+    ((= (state-score (list-ref movesL index)) (state-score (list-ref movesL (add1 index)))) (println 2) (bestMove movesL (add1 index) (cons index bestIndex)))
+    ((< (state-score (list-ref movesL index)) (state-score (list-ref movesL (add1 index)))) (println 3) (bestMove movesL (add1 index) (list index)))
+    (else (print 4) (bestMove movesL (add1 index) bestIndex))))
+
 (define (lowestFreeSpotInColumn B column depth)
   (cond
     ((= depth 6) 5)
@@ -176,13 +196,9 @@
 (define (randomIndexFrom L)
   (list-ref L (random (length L))))
 
-(define (calcForEach Lindex)
-  (cond
-    ((= index (length L)) '())
-    (else (cons (countAttacks (list-ref Lindex) 0) (calcForEach L(add1 index))))))
-
 (define (printState state)
   (printBoard (state-board state))
+  (display "score: ") (displayln (state-score state))
   (displayln "next turn is:")
   (println (state-player state))
   (newline))
