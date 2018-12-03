@@ -38,14 +38,15 @@
     ((win? B 0 0 (opponentMarker player)) (newline) (make-state B -inf.0 (opponentMarker player) parent))
     (else (make-state B 0 (opponentMarker player) parent))))
 
-(define (bestMove movesL index bestIndex) ;movesL is (possibleMoves state 0)
-  (print bestIndex) (println (state-score (list-ref movesL index)))
+(define (bestMove movesL index bestIndex) ;movesL is (possibleMoves state 0) index is 0 and bestIndex is '(0)
+;  (display "best indexes so far ") (println bestIndex)
+;  (display "this index ") (print index) (display " score ") (println (state-score (list-ref movesL index)))
   (cond
     ((empty? movesL) 'tie)
-    ((> index (- (length movesL) 2)) (println 1)  (list-ref movesL (randomIndexFrom bestIndex)))
-    ((= (state-score (list-ref movesL index)) (state-score (list-ref movesL (add1 index)))) (println 2) (bestMove movesL (add1 index) (cons index bestIndex)))
-    ((< (state-score (list-ref movesL index)) (state-score (list-ref movesL (add1 index)))) (println 3) (bestMove movesL (add1 index) (list index)))
-    (else (print 4) (bestMove movesL (add1 index) bestIndex))))
+    ((> index (- (length movesL) 2)) (list-ref movesL (randomIndexFrom bestIndex)))
+    ((= (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (bestMove movesL (add1 index) (cons index bestIndex)))
+    ((> (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (bestMove movesL (add1 index) (list index)))
+    (else (bestMove movesL (add1 index) bestIndex))))
 
 (define (lowestFreeSpotInColumn B column depth)
   (cond
@@ -67,7 +68,7 @@
 
 (define (testAllMoves depth targetDepth movesL) ;WIP
   (cond
-    ((= depth targetDepth) (calcScore movesL)) ;MISSING FINCTION
+    ((= depth targetDepth) (calcScore movesL))
     ((empty? movesL) 'ERR-NO-MOVES)
     ((empty? (rest movesL)) (testAllMoves (add1 depth) targetDepth (append (rest movesL) (possibleMoves (first movesL) 0))))
     ((not (equal? (state-player (first movesL)) (state-player (second movesL)))) (testAllMoves (add1 depth) targetDepth (append (rest movesL) (possibleMoves (first movesL) 0))))
@@ -78,7 +79,7 @@
   (cond
     ((and (state? (state-parent state)) (win? (state-board state) 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (display " WON  ") 1)
     ((empty? (possibleMoves state 0)) (print 'TIE) 0)
-    (else (playTest (bestMove (possibleMoves state 0) 0 '())))))
+    (else (playTest (bestMove (possibleMoves state 0) 0 '(0))))))
 
 (define (win? board X Y player)
   (cond
