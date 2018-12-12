@@ -13,6 +13,7 @@
              (O - - X - - -)
              (O - - X - - -)
              (O - - X - - -)))
+
 (define B2.1 '((- - - - - - -)
                (- - - - - - -)
                (- - - - - - -)
@@ -22,9 +23,8 @@
 
 (define S2 (make-state B2 0 'X (make-state B2.1 0 'O 'none)))
 
-;debub test
-;(printState (bestMove (calcForEach (possibleMoves S2 0) 0) 0 '(0)))
-;(printStates (possibleMoves S2 0))
+;(display "enter the bot's search depth")
+;(define Sdepth (read))
 
 
 (define (move state column)
@@ -39,14 +39,31 @@
     (else (make-state B 0 (opponentMarker player) parent))))
 
 (define (bestMove movesL index bestIndex) ;movesL is (possibleMoves state 0) index is 0 and bestIndex is '(0)
-;  (display "best indexes so far ") (println bestIndex)
-;  (display "this index ") (print index) (display " score ") (println (state-score (list-ref movesL index)))
   (cond
     ((empty? movesL) 'tie)
     ((> index (- (length movesL) 2)) (list-ref movesL (randomIndexFrom bestIndex)))
     ((= (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (bestMove movesL (add1 index) (cons index bestIndex)))
     ((> (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (bestMove movesL (add1 index) (list index)))
     (else (bestMove movesL (add1 index) bestIndex))))
+
+(define (develop state depth maxDepth open)
+  (cond
+    ((empty? open) state)
+    ((< depth maxDepth) (bestMove (developAllMoves open depth maxDepth) 0 '(0)))
+    (else (bestMove open 0 '(0)))))
+
+(define (developAllMoves movesL depth maxDepth)
+  (cond
+    ((empty? movesL) '())
+    (else (cons (develop (first movesL) (add1 depth) maxDepth (possibleMoves (first movesL) 0)) (developAllMoves (rest movesL) (add1 depth) maxDepth)))))
+
+;'bestMove' needs to change according to the player playing next, it needs to seek -inf.0 with O and +inf.0 with X
+
+(define (getGen state gen) ;working
+  (cond
+    ((= gen 0) state)
+    (else (getGen (state-parent state) (sub1 gen)))))
+
 
 (define (lowestFreeSpotInColumn B column depth)
   (cond
@@ -138,11 +155,6 @@
     ((equal? (state-board (first L)) (state-board target)) #T)
     (else (findInList target (rest L)))))
 
-(define (outOfBounds? B X Y)
-  (cond
-    ((or (> 0 X) (> 0 Y) (< (sub1 (length (first B))) X) (< (sub1 (length B)) Y)) #T)
-    (else #F)))
-
 (define (updateBoard B Xpos Ypos input)
   (cond
     ((= Ypos 0) (cons (updateCol (first B) Xpos input) (rest B)))
@@ -166,6 +178,35 @@
 (define (getTileAt B Xpos Ypos)
   (list-ref (list-ref B Ypos) Xpos))
 
+(define (randomIndexFrom L)
+  (list-ref L (random (length L))))
+
+(define (printState state)
+  (printBoard (state-board state))
+  (display "score: ") (displayln (state-score state))
+  (displayln "next turn is:")
+  (println (state-player state))
+  (newline))
+
+(define (printStates L)
+  (cond
+    ((empty? L) 'done)
+    (else (printState (first L)) (printStates (rest L)))))
+
+(define (runForEach L function input)
+  (cond
+    ((empty? (rest L)) (function (first L) input))
+    (else (append (function (first L) input) (runForEach (rest L) function input)))))
+      
+
+(define (tieRate numOfRuns ties wins) ;just for fun... defult is 0 on ties and wins
+  (cond
+    ((= 0 numOfRuns) (newline) (* (/ ties wins) 100))
+    ((= (playTest S) 1) (tieRate (sub1 numOfRuns) ties (add1 wins)))
+    (else (tieRate (sub1 numOfRuns) (add1 ties) wins))))
+
+;maybe useful
+
 (define (countAttacks Lindex)
   (cond
     ((= index (length L)) 0)
@@ -188,39 +229,5 @@
     ((= (list-ref LqueenNum) (+ (list-ref Lindex) (abs (- index queenNum)))) (add1 (countDiaAttacks LqueenNum (add1 index))))
     ((= (list-ref LqueenNum) (- (list-ref Lindex) (abs (- index queenNum)))) (add1 (countDiaAttacks LqueenNum (add1 index))))
     (else (countDiaAttacks LqueenNum (add1 index)))))
-
-(define (listUntill L index counter)
-  (cond
-    ((= index 0) '())
-    ((= (sub1 (length L)) index) (rest L))
-    ((= counter index) '())
-    (else (cons (list-ref L counter) (listUntill L index (add1 counter))))))
-
-(define (listFrom L index)
-  (cond 
-    ((= index 0) L)
-    ((= (length L) index) '())
-    (else (cons (list-ref L index) (listFrom L (add1 index))))))
-
-(define (randomIndexFrom L)
-  (list-ref L (random (length L))))
-
-(define (printState state)
-  (printBoard (state-board state))
-  (display "score: ") (displayln (state-score state))
-  (displayln "next turn is:")
-  (println (state-player state))
-  (newline))
-
-(define (printStates L)
-  (cond
-    ((empty? L) 'done)
-    (else (printState (first L)) (printStates (rest L)))))
-
-(define (tieRate numOfRuns ties wins) ;just for fun... defult is 0 on ties and wins
-  (cond
-    ((= 0 numOfRuns) (newline) (* (/ ties wins) 100))
-    ((= (playTest S) 1) (tieRate (sub1 numOfRuns) ties (add1 wins)))
-    (else (tieRate (sub1 numOfRuns) (add1 ties) wins))))
     
   
