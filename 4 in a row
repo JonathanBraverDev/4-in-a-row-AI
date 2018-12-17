@@ -55,18 +55,44 @@
     (else (Max movesL (add1 index) bestIndex))))
 
 (define (dfs open depth maxDepth) ;open is possible moves, depth is 0 (so 0 0 means the bot only looks at the next move, 0 1 will make him look 2 moves)
-  (println depth)
   (cond
     ((empty? open) 'ERR-no-moves)
     ((= depth maxDepth) (finalBestMove open depth))
-    ((= (mod2 depth) 0) (Max (dfsForEach open depth maxDepth Min) 0 '(0)))
-    ((= (mod2 depth) 1) (Min (dfsForEach open depth maxDepth Max) 0 '(0)))
+    ((= (mod2 depth) 0) (Max (dfsForEach open depth maxDepth Min) 0 '(0))) ;need to activate on player turn, not the depth
+    ((= (mod2 depth) 1) (Min (dfsForEach open depth maxDepth Max) 0 '(0))) ;need to activate on player turn, not the depth
     (else 'else)))
 
-(define (updateScore state stateDevs Min/Max)
+;WIP ZONE
+;-------------------------------------------------------------------------------------------------------------------------------
+(define (updateScoreORIGIAL state stateDevs Min/Max) ;stateDevs is possible moves (not a very important imput...)
   (cond
     ((or (= -inf.0 (state-score state)) (= +inf.0 (state-score state))) state)
     (else (make-state (state-board state) (state-score (Min/Max stateDevs 0 '(0))) (state-player state) (state-parent state)))))
+
+(define (deepUpdateScore state depth maxDepth) ;test of the update function
+  (cond
+     
+    ((equal? (state-player state) 'X) (updateScore state (possibleMoves state 0) Max))
+    ((equal? (state-player state) 'Y) (updateScore state (possibleMoves state 0) Min))
+    (else 'ERR-DUS)))
+
+(define (updateList movesL Min/Max) ;returns a list of all final move choices and updated scores
+  (cond
+    ((list? (first movesL)) (splitAndUpdate movesL Min/Max)) ;i'm only expecting list of of moves here, not some random bullshit 
+    ((empty? (rest movesL)) (cons (updateScore (first movesL) (possibleMoves (first movesL) 0) (reverseMin/Max Min/Max)) '()))
+    (else (cons (updateScore (first movesL) (possibleMoves (first movesL) 0) (reverseMin/Max Min/Max)) (updateList (rest movesL) (reverseMin/Max Min/Max))))))
+
+(define (splitAndUpdate movesL Min/Max)
+  (cond
+    ((empty? (rest movesL)) (cons (updateList (first movesL) Min/Max) '())) ;it also makes sure that all moves are prossesed, triple layer lists will work just fine here
+    (else (cons (updateList (first movesL) Min/Max) (splitAndUpdate (rest movesL) Min/Max)))))
+    
+(define (updateScore state stateDevs Min/Max) 
+  (cond
+    ((or (= -inf.0 (state-score state)) (= +inf.0 (state-score state))) state)
+    (else (make-state (state-board state) (state-score (Min/Max stateDevs 0 '(0))) (state-player state) (state-parent state)))))
+;-------------------------------------------------------------------------------------------------------------------------------
+;WIP ZONE
 
 (define (finalBestMove open depth)
   (cond
@@ -75,7 +101,6 @@
     (else 'ERR-final-move)))
 
 (define (dfsForEach L depth maxDepth nextOP)
-  (print (- 7 (length L)))
   (cond
     ((empty? (rest L)) (list (nextOP (dfs (possibleMoves (first L) 0) (add1 depth) maxDepth)  0 '(0))))
     (else (cons (nextOP (dfs (possibleMoves (first L) 0) (add1 depth) maxDepth)  0 '(0)) (dfsForEach (rest L) depth maxDepth nextOP)))))
@@ -100,10 +125,15 @@
 
 ;working:
 
+(define (reverseMin/Max Min/Max)
+  (cond
+    ((equal? Min/Max Min) Max)
+    (else Min)))
+
 (define (mod2 num)
   (cond
-    ((> num 2) (mod2 (- num 2)))
-    (else num)))
+    ((< num 2) num)
+    (else (mod2 (- num 2)))))
 
 (define (lowestFreeSpotInColumn B column depth)
   (cond
