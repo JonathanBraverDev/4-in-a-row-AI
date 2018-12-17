@@ -24,7 +24,7 @@
 (define S2 (make-state B2 0 'X (make-state B2.1 0 'O 'none)))
 
 ;(display "enter the bot's search depth")
-;(define Sdepth (read))
+;(define searchDepth (read))
 
 
 (define (move state column)
@@ -32,38 +32,80 @@
     ((equal? (getTileAt (state-board state) column 0) '-) (calcScore (updateBoard (state-board state) column (lowestFreeSpotInColumn (state-board state) column 0) (state-player state)) (state-player state) state))
     (else #F)))
 
-(define (calcScore B player parent) ;for now just win/lose
+(define (calcScore B player parent) ;for now just win detection fo each player
   (cond
-    ((win? B 0 0 player) (make-state B +inf.0 (opponentMarker player) parent))
-    ((win? B 0 0 (opponentMarker player)) (newline) (make-state B -inf.0 (opponentMarker player) parent))
+    ((win? B 0 0 'X) (make-state B +inf.0 (opponentMarker player) parent))
+    ((win? B 0 0 'O) (make-state B -inf.0 (opponentMarker player) parent))
     (else (make-state B 0 (opponentMarker player) parent))))
 
-(define (bestMove movesL index bestIndex) ;movesL is (possibleMoves state 0) index is 0 and bestIndex is '(0)
+(define (Min movesL index bestIndex) ;movesL is (possibleMoves state 0), index is 0, bestIndex is '(0)
+  (print 'Min) 
+    (cond
+    ((empty? movesL) 'tie)
+    ((> index (sub1
+               (length movesL))) (println 1) (list-ref movesL (randomIndexFrom bestIndex)))
+    ((= (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (println 2) (Min movesL (add1 index) (cons index bestIndex)))
+    ((< (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (println 3) (Min movesL (add1 index) (list index)))
+    (else (println 4) (Min movesL (add1 index) bestIndex))))
+
+(define (Max movesL index bestIndex) ;movesL is (possibleMoves state 0), index is 0, bestIndex is '(0)
   (cond
     ((empty? movesL) 'tie)
-    ((> index (- (length movesL) 2)) (list-ref movesL (randomIndexFrom bestIndex)))
-    ((= (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (bestMove movesL (add1 index) (cons index bestIndex)))
-    ((> (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (bestMove movesL (add1 index) (list index)))
-    (else (bestMove movesL (add1 index) bestIndex))))
+    ((> index (sub1 (length movesL))) (list-ref movesL (randomIndexFrom bestIndex)))
+    ((= (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (Max movesL (add1 index) (cons index bestIndex)))
+    ((> (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (Max movesL (add1 index) (list index)))
+    (else (Max movesL (add1 index) bestIndex))))
 
-(define (develop state depth maxDepth open)
+(define (dfs open depth maxDepth) ;open is possible moves, depth is 0 (so 0 0 means the bot only looks at the next move, 0 1 will make him look 2 moves)
+  (println depth)
   (cond
-    ((empty? open) state)
-    ((< depth maxDepth) (bestMove (developAllMoves open depth maxDepth) 0 '(0)))
-    (else (bestMove open 0 '(0)))))
+    ((empty? open) 'ERR-no-moves)
+    ((= depth maxDepth) (finalBestMove open depth))
+    ((= (mod2 depth) 0) (Max (dfsForEach open depth maxDepth Min) 0 '(0)))
+    ((= (mod2 depth) 1) (Min (dfsForEach open depth maxDepth Max) 0 '(0)))
+    (else 'else)))
 
-(define (developAllMoves movesL depth maxDepth)
+(define (updateScore state stateDevs min/max)
   (cond
-    ((empty? movesL) '())
-    (else (cons (develop (first movesL) (add1 depth) maxDepth (possibleMoves (first movesL) 0)) (developAllMoves (rest movesL) (add1 depth) maxDepth)))))
+    ((or (= -inf.0 (state-score state)) (= +inf.0 (state-score state))) state)
+    (else (make-state (state-board state) (state-score (min/max stateDevs 0 '(0))) (state-palyer state) (state-parent state)))))
 
-;'bestMove' needs to change according to the player playing next, it needs to seek -inf.0 with O and +inf.0 with X
-
-(define (getGen state gen) ;working
+(define (finalBestMove open depth)
   (cond
-    ((= gen 0) state)
-    (else (getGen (state-parent state) (sub1 gen)))))
+    ((= (mod2 depth) 0) (Max open 0 '(0)))
+    ((= (mod2 depth) 1) (Min open 0 '(0)))
+    (else 'ERR-final-move)))
 
+(define (dfsForEach L depth maxDepth nextOP)
+  (print (- 7 (length L)))
+  (cond
+    ((empty? (rest L)) (list (nextOP (dfs (possibleMoves (first L) 0) (add1 depth) maxDepth)  0 '(0))))
+    (else (cons (nextOP (dfs (possibleMoves (first L) 0) (add1 depth) maxDepth)  0 '(0)) (dfsForEach (rest L) depth maxDepth nextOP)))))
+
+;game modes: (WIP)
+
+(define (PvE state)
+  (printState state)
+  (cond
+    ((and (state? (state-parent state)) (win? (state-board state) 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (display " WON"))
+    ((empty? (possibleMoves state 0)) (print 'TIE) 0)
+    ((equal? (state-player state) 'X) (display "enter your move (0-6) ") (PvE (move state (read))))
+    (else (PvE (bestMove (possibleMoves state 0) 0 '(0)))))) ;replace best move
+
+(define (playTest state)
+  (printState state)
+  (cond
+    ((and (state? (state-parent state)) (win? (state-board state) 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (display " WON  ") 1)
+    ((empty? (possibleMoves state 0)) (print 'TIE) 0)
+    (else (playTest (bestMove (possibleMoves state 0) 0 '(0)))))) ;replace best move
+
+
+;working:
+
+(define (mod2 num)
+  (cond
+    ((> num 2) (mod2 (- num 2)))
+    (else num)))
 
 (define (lowestFreeSpotInColumn B column depth)
   (cond
@@ -82,29 +124,6 @@
     ((= column 7) '())
     ((move state column) (cons (move state column) (possibleMoves state (add1 column))))
     (else (possibleMoves state (add1 column)))))
-
-(define (testAllMoves depth targetDepth movesL) ;WIP
-  (cond
-    ((= depth targetDepth) (calcScore movesL))
-    ((empty? movesL) 'ERR-NO-MOVES)
-    ((empty? (rest movesL)) (testAllMoves (add1 depth) targetDepth (append (rest movesL) (possibleMoves (first movesL) 0))))
-    ((not (equal? (state-player (first movesL)) (state-player (second movesL)))) (testAllMoves (add1 depth) targetDepth (append (rest movesL) (possibleMoves (first movesL) 0))))
-    (else (testAllMoves depth targetDepth (append (rest movesL) (possibleMoves (first movesL) 0))))))
-
-(define (PvE state)
-  (printState state)
-  (cond
-    ((and (state? (state-parent state)) (win? (state-board state) 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (display " WON"))
-    ((empty? (possibleMoves state 0)) (print 'TIE) 0)
-    ((equal? (state-player state) 'X) (display "enter your move (0-6) ") (PvE (move state (read))))
-    (else (PvE (bestMove (possibleMoves state 0) 0 '(0))))))
-
-(define (playTest state)
-  (printState state)
-  (cond
-    ((and (state? (state-parent state)) (win? (state-board state) 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (display " WON  ") 1)
-    ((empty? (possibleMoves state 0)) (print 'TIE) 0)
-    (else (playTest (bestMove (possibleMoves state 0) 0 '(0))))))
 
 (define (win? board X Y player)
   (cond
@@ -193,7 +212,7 @@
     ((empty? L) 'done)
     (else (printState (first L)) (printStates (rest L)))))
 
-(define (runForEach L function input)
+(define (runForEach L function input) ;for single defult input functions
   (cond
     ((empty? (rest L)) (function (first L) input))
     (else (append (function (first L) input) (runForEach (rest L) function input)))))
@@ -205,7 +224,7 @@
     ((= (playTest S) 1) (tieRate (sub1 numOfRuns) ties (add1 wins)))
     (else (tieRate (sub1 numOfRuns) (add1 ties) wins))))
 
-;maybe useful
+;maybe useful:
 
 (define (countAttacks Lindex)
   (cond
