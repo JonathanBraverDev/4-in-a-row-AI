@@ -4,7 +4,7 @@
              (- - - - - - -)
              (- - - - - - -)
              (- - - - - - -)
-             (- - - - - - -)))
+             (X X X - - - -)))
 (define S (make-state B1 0 'X 'none))
 
 (define B2 '((- - - - - - -)
@@ -39,14 +39,12 @@
     (else (make-state B 0 (opponentMarker player) parent))))
 
 (define (Min movesL index bestIndex) ;movesL is (possibleMoves state 0), index is 0, bestIndex is '(0)
-  (print 'Min) 
     (cond
     ((empty? movesL) 'tie)
-    ((> index (sub1
-               (length movesL))) (println 1) (list-ref movesL (randomIndexFrom bestIndex)))
-    ((= (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (println 2) (Min movesL (add1 index) (cons index bestIndex)))
-    ((< (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (println 3) (Min movesL (add1 index) (list index)))
-    (else (println 4) (Min movesL (add1 index) bestIndex))))
+    ((> index (sub1 (length movesL))) (list-ref movesL (randomIndexFrom bestIndex)))
+    ((= (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (Min movesL (add1 index) (cons index bestIndex)))
+    ((< (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (Min movesL (add1 index) (list index)))
+    (else (Min movesL (add1 index) bestIndex))))
 
 (define (Max movesL index bestIndex) ;movesL is (possibleMoves state 0), index is 0, bestIndex is '(0)
   (cond
@@ -65,10 +63,10 @@
     ((= (mod2 depth) 1) (Min (dfsForEach open depth maxDepth Max) 0 '(0)))
     (else 'else)))
 
-(define (updateScore state stateDevs min/max)
+(define (updateScore state stateDevs Min/Max)
   (cond
     ((or (= -inf.0 (state-score state)) (= +inf.0 (state-score state))) state)
-    (else (make-state (state-board state) (state-score (min/max stateDevs 0 '(0))) (state-palyer state) (state-parent state)))))
+    (else (make-state (state-board state) (state-score (Min/Max stateDevs 0 '(0))) (state-player state) (state-parent state)))))
 
 (define (finalBestMove open depth)
   (cond
