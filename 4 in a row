@@ -113,14 +113,15 @@
     ((and (state? (state-parent state)) (win? (state-board state) 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (display " WON"))
     ((empty? (possibleMoves state 0)) (print 'TIE) 0)
     ((equal? (state-player state) 'X) (display "enter your move (0-6) ") (PvE (move state (read))))
-    (else (PvE (bestMove (possibleMoves state 0) 0 '(0)))))) ;replace best move
+    (else (PvE (Min (possibleMoves state 0) 0 '(0)))))) ;only a temporary solution, bot cant srart
 
-(define (playTest state)
+(define (playTest state Min/Max) ;defult is S,Max ;working
   (printState state)
   (cond
-    ((and (state? (state-parent state)) (win? (state-board state) 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (display " WON  ") 1)
+    ((and (state? (state-parent state)) (win? (state-board state) 0 0 'X)) (displayln "X WON") 1)
+    ((and (state? (state-parent state)) (win? (state-board state) 0 0 'O)) (displayln "O WON") 2)
     ((empty? (possibleMoves state 0)) (print 'TIE) 0)
-    (else (playTest (bestMove (possibleMoves state 0) 0 '(0)))))) ;replace best move
+    (else (playTest (Min/Max (possibleMoves state 0) 0 '(0)) (reverseMin/Max Min/Max)))))
 
 
 ;working:
@@ -246,11 +247,20 @@
     (else (append (function (first L) input) (runForEach (rest L) function input)))))
       
 
-(define (tieRate numOfRuns ties wins) ;just for fun... defult is 0 on ties and wins
+(define (winRateCalc numOfRuns totalGames ties Xwins) ;just for fun... defult is 0 on all inputs, returns the winrate from X's rpespective
   (cond
-    ((= 0 numOfRuns) (newline) (* (/ ties wins) 100))
-    ((= (playTest S) 1) (tieRate (sub1 numOfRuns) ties (add1 wins)))
-    (else (tieRate (sub1 numOfRuns) (add1 ties) wins))))
+    ((= 0 numOfRuns) (newline) (display "tie count: ") (println ties) (* (/ Xwins totalGames) 100))
+    ((= (playTest S Max) 1) (winRateCalc (sub1 numOfRuns) totalGames ties (add1 Xwins)))
+    ((= (playTest S Max) 2) (winRateCalc (sub1 numOfRuns) totalGames ties Xwins))
+    (else (winRateCalc (sub1 numOfRuns) totalGames (add1 ties) Xwins))))
+
+(define (winRate player games)
+  (cond
+    ((equal? player 'X) (winRateCalc games games 0 0))
+    ((equal? player 'O) (- 100 (winRateCalc games games 0 0)))
+    (else 'ERR-winRate-unknown-player)))
+                     
+    
 
 ;maybe useful:
 
