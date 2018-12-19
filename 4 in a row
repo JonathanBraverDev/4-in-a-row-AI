@@ -248,10 +248,11 @@
       
 
 (define (winRateCalc numOfRuns totalGames ties Xwins) ;just for fun... defult is 0 on all inputs, returns the winrate from X's rpespective
+  (define result (playTest S Max))
   (cond
     ((= 0 numOfRuns) (newline) (display "tie count: ") (println ties) (* (/ Xwins totalGames) 100))
-    ((= (playTest S Max) 1) (winRateCalc (sub1 numOfRuns) totalGames ties (add1 Xwins)))
-    ((= (playTest S Max) 2) (winRateCalc (sub1 numOfRuns) totalGames ties Xwins))
+    ((= result 1) (winRateCalc (sub1 numOfRuns) totalGames ties (add1 Xwins)))
+    ((= result 2) (winRateCalc (sub1 numOfRuns) totalGames ties Xwins))
     (else (winRateCalc (sub1 numOfRuns) totalGames (add1 ties) Xwins))))
 
 (define (winRate player games)
