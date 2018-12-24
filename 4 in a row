@@ -97,12 +97,39 @@
 ;TST ZONE
 ;-------------------------------------------------------------------------------------------------------------------------------
 
-(define (allMovesUntillDepth statesL maxDepth)
+(define (allMovesUntillDepth statesL maxDepth) ;working
   (cond
-    ((= maxDepth 0) (println 1) statesL)
-    ((and (not (empty? (rest statesL))) (not (equal? (state-player (first statesL)) (state-player (second statesL))))) (print 2) (allMovesUntillDepth statesL (sub1 maxDepth)))
-    ((empty? (rest statesL)) (print 3) (allMovesUntillDepth (possibleMoves (first statesL) 0) (sub1 maxDepth)))
-    (else (print 4) (allMovesUntillDepth (append (rest statesL) (possibleMoves (first statesL) 0)) maxDepth))))
+    ((= maxDepth 0) statesL)
+    ((and (not (empty? (rest statesL))) (not (equal? (state-player (first statesL)) (state-player (second statesL))))) (allMovesUntillDepth (append (rest statesL) (possibleMoves (first statesL) 0)) (sub1 maxDepth)))
+    ((empty? (rest statesL)) (allMovesUntillDepth (possibleMoves (first statesL) 0) (sub1 maxDepth)))
+    (else (allMovesUntillDepth (append (rest statesL) (possibleMoves (first statesL) 0)) maxDepth))))
+
+(define (bestMove state depth)
+  (setNewScore (allMovesUntillDepth (list state) depth)))
+
+(define (setNewScore statesL)
+  
+  (define player (state-player (first statesL)))
+  (define firstGroup (movesWithSameParent (listUntill statesL 7 0)))
+  
+  (cond
+    ((and (< 7 (length statesL)) (equal? player 'X)) (setNewScore (first (cons (listFrom statesL (length firstGroup)) (Min firstGroup  0 '(0)))))) ;7 in te max ammound of moves in te game
+    ((and (< 7 (length statesL)) (equal? player 'O)) (setNewScore (first (cons (listFrom statesL (length firstGroup)) (Max firstGroup  0 '(0))))))
+    ((and (not (equal? firstGroup statesL)) (equal? player 'X)) (setNewScore (first (cons (listFrom statesL (length firstGroup)) (Min firstGroup  0 '(0))))))
+    ((and (not (equal? firstGroup statesL)) (equal? player 'O)) (setNewScore (first (cons (listFrom statesL (length firstGroup)) (Max firstGroup  0 '(0))))))
+    (else (finalScore statesL player))))
+
+(define (movesWithSameParent statesL) ;working
+  (cond
+    ((empty? (rest statesL)) (list (first statesL)))
+    ((not (equal? (state-parent (first statesL)) (state-parent (second statesL)))) (list (first statesL)))
+    (else (cons (first statesL) (movesWithSameParent (rest statesL))))))
+
+(define (finalScore statesL player)
+  (cond
+    ((equal? player 'X) (Min statesL  0 '(0)))
+    ((equal? player 'O) (Max statesL  0 '(0)))
+    (else 'ERR-FS)))
 
 ;-------------------------------------------------------------------------------------------------------------------------------
 ;TST ZONE
@@ -128,6 +155,18 @@
 
 
 ;working:
+
+(define (listFrom L index) ;NOTE: indexing nums, starts from 0 NOT 1 like listUntill (intesionally, to 'miss' one entry given the same number)
+  (cond 
+    ((= index 0) L)
+    ((= (length L) index) '())
+    (else (cons (list-ref L index) (listFrom L (add1 index))))))
+
+(define (listUntill L index counter) ;index not 0 and lower than list length, index is in humen nums (6 will retuen the fisrt 6, not 7 indexes)
+  (cond
+    ((= counter index) '())
+    ((= (sub1 (length L)) index) (rest L))
+    (else (cons (list-ref L counter) (listUntill L index (add1 counter))))))
 
 (define (reverseMin/Max Min/Max)
   (cond
