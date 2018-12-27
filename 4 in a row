@@ -104,20 +104,21 @@
     ((empty? (rest statesL)) (allMovesUntillDepth (possibleMoves (first statesL) 0) (sub1 maxDepth)))
     (else (allMovesUntillDepth (append (rest statesL) (possibleMoves (first statesL) 0)) maxDepth))))
 
-(define (bestMove state depth)
+(define (bestMove state depth) ;working 
   (setNewScore (allMovesUntillDepth (list state) depth)))
 
+
 (define (setNewScore statesL)
-  
   (define player (state-player (first statesL)))
-  (define firstGroup (movesWithSameParent (listUntill statesL 7 0)))
-  
+  (define firstGroup (movesWithSameParent statesL))
   (cond
-    ((and (< 7 (length statesL)) (equal? player 'X)) (setNewScore (first (cons (listFrom statesL (length firstGroup)) (Min firstGroup  0 '(0)))))) ;7 in te max ammound of moves in te game
-    ((and (< 7 (length statesL)) (equal? player 'O)) (setNewScore (first (cons (listFrom statesL (length firstGroup)) (Max firstGroup  0 '(0))))))
-    ((and (not (equal? firstGroup statesL)) (equal? player 'X)) (setNewScore (first (cons (listFrom statesL (length firstGroup)) (Min firstGroup  0 '(0))))))
-    ((and (not (equal? firstGroup statesL)) (equal? player 'O)) (setNewScore (first (cons (listFrom statesL (length firstGroup)) (Max firstGroup  0 '(0))))))
+    ((and (< 7 (length statesL)) (not (equal? firstGroup statesL))) (setNewScore (append (listFrom statesL (length firstGroup)) (list (updateParent (first firstGroup))))))
+;    ((and (< 7 (length statesL)) (equal? player 'X)) (print 1) (setNewScore (append (listFrom statesL (length firstGroup)) (list (updateParent (first firstGroup)))))) ;7 in te max ammound of moves in te game
+;    ((and (< 7 (length statesL)) (equal? player 'O)) (print 2) (setNewScore (append (listFrom statesL (length firstGroup)) (list (updateParent (first firstGroup))))))
+;    ((and (not (equal? firstGroup statesL)) (equal? player 'X)) (print 3) (setNewScore (append (listFrom statesL (length firstGroup)) (list (updateParent (first firstGroup))))))
+;    ((and (not (equal? firstGroup statesL)) (equal? player 'O)) (print 4) (setNewScore (append (listFrom statesL (length firstGroup)) (list (updateParent (first firstGroup))))))
     (else (finalScore statesL player))))
+
 
 (define (movesWithSameParent statesL) ;working
   (cond
@@ -131,6 +132,17 @@
     ((equal? player 'O) (Max statesL  0 '(0)))
     (else 'ERR-FS)))
 
+(define (updateParent state)
+  (cond
+    ((equal? (state-player (state-parent state)) 'X) (updateScore (state-parent state) Min))
+    ((equal? (state-player (state-parent state)) 'O) (updateScore (state-parent state) Max))
+    (else 'ERR-UP)))
+
+(define (updateScore state Min/Max)
+  (cond
+    ((or (= -inf.0 (state-score state)) (= +inf.0 (state-score state))) state)
+    (else (make-state (state-board (Min/Max (possibleMoves (state-parent state) 0) 0 '(0))) (state-score (Min/Max (possibleMoves (state-parent state) 0) 0 '(0))) (state-player state) (state-parent state)))))
+
 ;-------------------------------------------------------------------------------------------------------------------------------
 ;TST ZONE
 
@@ -142,16 +154,16 @@
   (cond
     ((and (state? (state-parent state)) (win? (state-board state) 0 0 (state-player (state-parent state)))) (print (state-player (state-parent state))) (display " WON"))
     ((empty? (possibleMoves state 0)) (print 'TIE) 0)
-    ((equal? (state-player state) 'X) (display "enter your move (0-6) ") (PvE (move state (read))))
-    (else (PvE (Max (possibleMoves state 0) 0 '(0)))))) ;only a temporary solution, bot cant srart
+    ((equal? (state-player state) 'X) (display "enter your move (0-6) ") (newline) (PvE (move state (read))))
+    (else (PvE (bestMove state 2))))) ;only a temporary solution, bot cant srart
 
-(define (playTest state Min/Max) ;defult is S,Max ;working
+(define (playTest state) ;defult is S,Max ;working
   (printState state)
   (cond
     ((and (state? (state-parent state)) (win? (state-board state) 0 0 'X)) (displayln "X WON") 1)
     ((and (state? (state-parent state)) (win? (state-board state) 0 0 'O)) (displayln "O WON") 2)
     ((empty? (possibleMoves state 0)) (print 'TIE) 0)
-    (else (playTest (Min/Max (possibleMoves state 0) 0 '(0)) (reverseMin/Max Min/Max)))))
+    (else (playTest (bestMove state 2)))))
 
 
 ;working:
@@ -297,7 +309,7 @@
       
 
 (define (winRateCalc numOfRuns totalGames ties Xwins) ;just for fun... defult is 0 on all inputs, returns the winrate from X's rpespective
-  (define result (playTest S Max))
+  (define result (playTest S))
   (cond
     ((= 0 numOfRuns) (newline) (display "tie count: ") (println ties) (* (/ Xwins totalGames) 100))
     ((= result 1) (winRateCalc (sub1 numOfRuns) totalGames ties (add1 Xwins)))
