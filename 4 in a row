@@ -4,7 +4,7 @@
              (- - - - - - -)
              (- - - - - - -)
              (- - - - - - -)
-             (- - - - - - -)))
+             (- - - - - - -))) 
 (define S (make-state B1 0 'X 'none))
 
 (define B2 '((- - - - - - -)
@@ -24,7 +24,7 @@
 (define S2.1 (make-state B2.1 0 'O 'none))
 (define S2 (make-state B2 0 'X S2.1))
 
-
+;(0,0) is the top left, (6,5) in the bottom rigth (using double list-ref Y is entered first (so (list-ref  (list-ref (state-board X) 5) 6) is (6,5))
 ;(display "enter the bot's search depth")
 ;(define searchDepth (read))
 
@@ -38,10 +38,57 @@
   (cond
     ((win? B 0 0 'X) (make-state B +inf.0 (opponentMarker player) parent))
     ((win? B 0 0 'O) (make-state B -inf.0 (opponentMarker player) parent))
-    (else (make-state B 0 (opponentMarker player) parent))))
+    (else (make-state B (calcScore2 B player) (opponentMarker player) parent))))
+
+(define (calcScore2 B player)
+  (define points (+ (* 3 (countThrees B 0 0 (opponentMarker player) 0))  ;3 'points' for threes 
+                    (* 1 (countPairs B 0 0 (opponentMarker player) 0)))) ;1 'point' for pairs (with overlaps)
+  (cond
+    ((equal? player 'X) (* -1 points))
+    (else points)))
+
+(define (countThrees board X Y player numOfThrees)
+    (cond
+    ((= Y 6) numOfThrees)
+    ((not (legalTile? X Y)) (countThrees board 0 (add1 Y) player numOfThrees))
+    ((and (< X 5)
+          (equal? (list-ref (list-ref board Y) X) player)
+          (equal? (list-ref (list-ref board Y) (+ 1 X)) player)
+          (equal? (list-ref (list-ref board Y) (+ 2 X)) player)) (countThrees board (add1 X) Y player (add1 numOfThrees)))
+    ((and (< Y 4)
+          (equal? (list-ref (list-ref board Y) X) player)
+          (equal? (list-ref (list-ref board (+ 1 Y)) X) player)
+          (equal? (list-ref (list-ref board (+ 2 Y)) X) player)) (countThrees board (add1 X) Y player (add1 numOfThrees)))
+    ((and (< Y 4) (< X 5)
+          (equal? (list-ref (list-ref board Y) X) player)
+          (equal? (list-ref (list-ref board (+ 1 Y)) (+ 1 X)) player)
+          (equal? (list-ref (list-ref board (+ 2 Y)) (+ 2 X)) player)) (countThrees board (add1 X) Y player (add1 numOfThrees)))
+    ((and (> Y 4) (< X 5)
+          (equal? (list-ref (list-ref board Y) X) player)
+          (equal? (list-ref (list-ref board (- Y 1)) (+ 1 X)) player)
+          (equal? (list-ref (list-ref board (- Y 2)) (+ 2 X)) player)) (countThrees board (add1 X) Y player (add1 numOfThrees)))
+    (else (countThrees board (add1 X) Y player numOfThrees))))
+
+(define (countPairs board X Y player numOfPaires)
+    (cond
+    ((= Y 6) numOfPaires)
+    ((not (legalTile? X Y)) (countPairs board 0 (add1 Y) player numOfPaires))
+    ((and (< X 6)
+          (equal? (list-ref (list-ref board Y) X) player)
+          (equal? (list-ref (list-ref board Y) (+ 1 X)) player)) (countPairs board (add1 X) Y player (add1 numOfPaires)))
+    ((and (< Y 5)
+          (equal? (list-ref (list-ref board Y) X) player)
+          (equal? (list-ref (list-ref board (+ 1 Y)) X) player)) (countPairs board (add1 X) Y player (add1 numOfPaires)))
+    ((and (< Y 5) (< X 6)
+          (equal? (list-ref (list-ref board Y) X) player)
+          (equal? (list-ref (list-ref board (+ 1 Y)) (+ 1 X)) player)) (countPairs board (add1 X) Y player (add1 numOfPaires)))
+    ((and (> Y 5) (< X 6)
+          (equal? (list-ref (list-ref board Y) X) player)
+          (equal? (list-ref (list-ref board (- Y 1)) (+ 1 X)) player)) (countPairs board (add1 X) Y player (add1 numOfPaires)))
+    (else (countPairs board (add1 X) Y player numOfPaires))))
 
 (define (Min movesL index bestIndex) ;movesL is (possibleMoves state 0), index is 0, bestIndex is '(0)
-    (cond
+  (cond
     ((empty? movesL) 'tie)
     ((> index (sub1 (length movesL))) (list-ref movesL (randomIndexFrom bestIndex)))
     ((= (state-score (list-ref movesL index)) (state-score (list-ref movesL (first bestIndex)))) (Min movesL (add1 index) (cons index bestIndex)))
@@ -113,10 +160,10 @@
   (define firstGroup (movesWithSameParent statesL))
   (cond
     ((and (< 7 (length statesL)) (not (equal? firstGroup statesL))) (setNewScore (append (listFrom statesL (length firstGroup)) (list (updateParent (first firstGroup))))))
-;    ((and (< 7 (length statesL)) (equal? player 'X)) (print 1) (setNewScore (append (listFrom statesL (length firstGroup)) (list (updateParent (first firstGroup)))))) ;7 in te max ammound of moves in te game
-;    ((and (< 7 (length statesL)) (equal? player 'O)) (print 2) (setNewScore (append (listFrom statesL (length firstGroup)) (list (updateParent (first firstGroup))))))
-;    ((and (not (equal? firstGroup statesL)) (equal? player 'X)) (print 3) (setNewScore (append (listFrom statesL (length firstGroup)) (list (updateParent (first firstGroup))))))
-;    ((and (not (equal? firstGroup statesL)) (equal? player 'O)) (print 4) (setNewScore (append (listFrom statesL (length firstGroup)) (list (updateParent (first firstGroup))))))
+    ;    ((and (< 7 (length statesL)) (equal? player 'X)) (print 1) (setNewScore (append (listFrom statesL (length firstGroup)) (list (updateParent (first firstGroup)))))) ;7 in te max ammound of moves in te game
+    ;    ((and (< 7 (length statesL)) (equal? player 'O)) (print 2) (setNewScore (append (listFrom statesL (length firstGroup)) (list (updateParent (first firstGroup))))))
+    ;    ((and (not (equal? firstGroup statesL)) (equal? player 'X)) (print 3) (setNewScore (append (listFrom statesL (length firstGroup)) (list (updateParent (first firstGroup))))))
+    ;    ((and (not (equal? firstGroup statesL)) (equal? player 'O)) (print 4) (setNewScore (append (listFrom statesL (length firstGroup)) (list (updateParent (first firstGroup))))))
     (else (finalScore statesL player))))
 
 
@@ -248,8 +295,8 @@
 
 (define (printBoard B)
   (cond
-   ((not (empty? (rest B))) (println (first B)) (printBoard (rest B)))
-   ((empty? (rest B)) (println (first B)))))
+    ((not (empty? (rest B))) (println (first B)) (printBoard (rest B)))
+    ((empty? (rest B)) (println (first B)))))
 
 (define (findInBoard target B X Y)
   (cond
@@ -349,4 +396,3 @@
     ((= (list-ref LqueenNum) (- (list-ref Lindex) (abs (- index queenNum)))) (add1 (countDiaAttacks LqueenNum (add1 index))))
     (else (countDiaAttacks LqueenNum (add1 index)))))
     
-  
