@@ -341,7 +341,8 @@
 
 (define (printState state)
   (printBoard (state-board state))
-  (display "score: ") (displayln (state-score state))
+;  (display "score (for ") (display (state-player state)) (display "): ") (displayln (* -1 (calcScore2 (state-board state) (state-player state)))) ;fail....
+  (display "score (for ") (display (opponentMarker (state-player state))) (display "): ") (displayln (state-score state))
   (displayln "next turn is:")
   (println (state-player state))
   (newline))
