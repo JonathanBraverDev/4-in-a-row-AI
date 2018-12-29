@@ -41,10 +41,12 @@
     (else (make-state B (calcScore2 B player) (opponentMarker player) parent))))
 
 (define (calcScore2 B player)
-  (define points (+ (* 3 (countThrees B 0 0 (opponentMarker player) 0))  ;3 'points' for threes 
-                    (* 1 (countPairs B 0 0 (opponentMarker player) 0)))) ;1 'point' for pairs (with overlaps)
+  (define points (- (+ (* 3 (countThrees B 0 0 (opponentMarker player) 0))  ;3 'points' for threes 
+                       (* 1 (countPairs B 0 0 (opponentMarker player) 0)))  ;1 'point' for pairs (with overlaps)
+                    (+ (* 3 (countThrees B 0 0 player 0)) ;enemy score
+                       (* 1 (countPairs B 0 0 player 0)))))
   (cond
-    ((equal? player 'X) (* -1 points))
+    ((equal? player 'O) (* -1 points))
     (else points)))
 
 (define (countThrees board X Y player numOfThrees)
@@ -188,7 +190,7 @@
 (define (updateScore state Min/Max)
   (cond
     ((or (= -inf.0 (state-score state)) (= +inf.0 (state-score state))) state)
-    (else (make-state (state-board (Min/Max (possibleMoves (state-parent state) 0) 0 '(0))) (state-score (Min/Max (possibleMoves (state-parent state) 0) 0 '(0))) (state-player state) (state-parent state)))))
+    (else (make-state (state-board state) (state-score (Min/Max (possibleMoves state 0) 0 '(0))) (state-player state) state))))
 
 ;-------------------------------------------------------------------------------------------------------------------------------
 ;TST ZONE
