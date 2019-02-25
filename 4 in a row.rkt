@@ -1,7 +1,12 @@
 #lang racket
 (require racket/list)
 
-(define-struct state (B attackedKing color lastMove parent))
+(define-struct state (B score color parent))
+
+#| notes
+i'll need to turn all my lists of moves to boards, pawn's gonna suck
+|#
+
 
 
 (define B1 '(("WR" "WH" "WB" "WQ" "WK" "WB" "WH" "WR")
@@ -467,6 +472,8 @@
 (define (getTileAt B Xpos Ypos) ;returnes a tile in a given location
   (list-ref (list-ref B Ypos) Xpos))
 
+
+
 ;minimax base
 (define (allMovesForColor B color [L (findAllColor B color)]);RETURNS a list of all origin points of pieses and tiles they van move into 
   (cond                                                      ;or just the origin in one move is avalible
@@ -543,12 +550,12 @@
   (clearTileAt (updateBoard B Xtarget Ytarget (getTileAt B Xorigin Yorigin)) Xorigin Yorigin))
 
 (define (flatten-lists L)
-  (pairify (flatten L))) ;not my naming idea...
+  (bordify (flatten L))) ;not my naming idea...
 
-(define (pairify L) ;the length of the list is always devisible by 2 (each list contains 2 numbers)
+(define (bordify L) ;the length of the list is always devisible by 8 (each board contains 8 lines)
   (cond
     ((empty? L) '())
-    (else (cons (list (first L) (second L)) (pairify (drop L 2))))))
+    (else (cons (take L 8) (bordify (drop L 8))))))
 
 (define (invertColor color)
   (cond
